@@ -3089,7 +3089,7 @@ int DisconnectOneLigand( inp_ATOM *at,
     int metal_neigh_ord[MAXVAL], num_neigh_arom_bonds[MAXVAL];
     int num_metal_neigh, num_disconnections;
     int num_del_arom_bonds, num_tot_arom_bonds, new_charge;
-    int el_type; // 1: hetro, 2: halogen
+    int el_type; /* 1: hetro, 2: halogen */
 
     iLigand = at[iMetal].neighbor[jLigand];
     num_metal_neigh = 0;
@@ -3159,7 +3159,7 @@ int DisconnectOneLigand( inp_ATOM *at,
 
     if (!val)
     {
-        if (el_type == 2) // el_type == 2 => IS_HALOGEN
+        if (el_type == 2) /* el_type == 2 => IS_HALOGEN */
         {
             new_charge = -1;
         }

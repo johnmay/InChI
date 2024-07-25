@@ -753,7 +753,7 @@ int bMayBeACationInMobileHLayer( inp_ATOM *at, VAL_AT *pVA, int iat, int bMobile
         return 1;
     }
     
-    // cVal : cation valence
+    /* cVal : cation valence */
     U_CHAR cVal = 0;
     switch (at[iat].el_number) {
         case EL_NUMBER_N: /* fallthrough */
