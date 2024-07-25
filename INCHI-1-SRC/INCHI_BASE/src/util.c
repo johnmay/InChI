@@ -1147,9 +1147,7 @@ U_CHAR ion_el_group( int el )
 
 int has_other_ion_neigh( inp_ATOM *at,
                          int iat,
-                         int iat_ion_neigh,
-                         const char *el,
-                         int el_len )
+                         int iat_ion_neigh)
 {
     int charge = at[iat_ion_neigh].charge;
     int i, neigh;
@@ -1159,7 +1157,7 @@ int has_other_ion_neigh( inp_ATOM *at,
         neigh = at[iat].neighbor[i];
 
         if (neigh != iat_ion_neigh && at[neigh].charge == charge &&
-             NULL != memchr( el, at[neigh].el_number, el_len ))
+            ion_el_group( at[neigh].el_number ))
         {
             return 1;
         }
@@ -1174,8 +1172,7 @@ int has_other_ion_neigh( inp_ATOM *at,
     BFS r=2
 ****************************************************************************/
 int has_other_ion_in_sphere_2( inp_ATOM *at, int iat,
-                               int iat_ion_neigh,
-                               const char *el, int el_len )
+                               int iat_ion_neigh )
 {
 #define MAXQ 16
     AT_NUMB q[MAXQ];
@@ -1199,7 +1196,7 @@ int has_other_ion_in_sphere_2( inp_ATOM *at, int iat,
 
                 if (!at[neigh].cFlags &&
                      at[neigh].valence <= 3 &&
-                     NULL != memchr( el, at[neigh].el_number, el_len ))
+                     ion_el_group( at[neigh].el_number ))
                 {
                     q[lenq++] = neigh;
                     at[neigh].cFlags = 1;
