@@ -1115,6 +1115,35 @@ int num_of_H( inp_ATOM *at, int iat )
     return num_explicit_H + NUMH( at, iat );
 }
 
+/****************************************************************************/
+/* Get the element group of an element. The base element rather than the    */
+/* periodic group is used to aid readability.                               */
+/* - NitrogenGroup = 7 (EL_NUMBER_N)                                        */
+/* - OxygenGroup   = 8 (EL_NUMBER_O)                                        */
+/* - Cargbon       = 6 (EL_NUMBER_C)                                        */
+/****************************************************************************/
+U_CHAR ion_el_group( int el )
+{
+    switch ( el ) {
+        case EL_NUMBER_C: /* fallthrough */
+#if ( FIX_REM_ION_PAIRS_Si_BUG == 1 )        
+        case EL_NUMBER_SI:
+#endif        
+            return EL_NUMBER_C;
+        case EL_NUMBER_N: /* fallthrough */
+        case EL_NUMBER_P:
+        case EL_NUMBER_AS:
+        case EL_NUMBER_SB:
+            return EL_NUMBER_N;
+        case EL_NUMBER_O: /* fallthrough */
+        case EL_NUMBER_S:
+        case EL_NUMBER_SE:
+        case EL_NUMBER_TE:
+            return EL_NUMBER_O;
+        default:
+            return 0;
+    }
+}
 
 int has_other_ion_neigh( inp_ATOM *at,
                          int iat,
