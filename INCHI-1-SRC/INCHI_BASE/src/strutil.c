@@ -598,34 +598,14 @@ return 0;
 }
 ****************************************************************************/
 
-
 /****************************************************************************/
 int fix_odd_things( int num_atoms,
                     inp_ATOM *at,
                     int bFixBug,
                     int bFixNonUniformDraw )
 {
-    // N;P;As;Sb;O;S;Se;Te;C;Si
-    static U_CHAR en[] = {
-        EL_NUMBER_N,
-        EL_NUMBER_P,
-        EL_NUMBER_AS,
-        EL_NUMBER_SB,
-        EL_NUMBER_O,
-        EL_NUMBER_S,
-        EL_NUMBER_SE,
-        EL_NUMBER_TE,
-        EL_NUMBER_C,
-        EL_NUMBER_SI
-    };
-    static int ne = sizeof(en)/sizeof(en[0]);
 
-#define FIRST_NEIGHB2  4
-#define FIRST_CENTER2  5
-#define NUM_CENTERS_N  4
-
-    int i1, i2, k1, k2, c = -1, num_changes = 0;
-    char elname[ATOM_EL_LEN];
+    int i1, i2, k1, k2, c = -1, num_changes = 0, grp;
 
     if (bFixNonUniformDraw)
     {
@@ -655,7 +635,8 @@ int fix_odd_things( int num_atoms,
         if (1 != at[i1].charge ||
              (at[i1].radical && RADICAL_SINGLET != at[i1].radical) ||
              at[i1].chem_bonds_valence == at[i1].valence ||
-             !memchr( en, at[i1].el_number, ne ) ||
+             (grp = ion_el_group(at[i1].el_number)) == EL_NUMBER_N || 
+             grp == EL_NUMBER_O ||
              get_el_valence( at[i1].el_number, at[i1].charge, 0 ) != at[i1].chem_bonds_valence + NUMH( at, i1 )) /* djb-rwth: addressing LLVM warning */
         {
             continue;
@@ -801,12 +782,14 @@ int fix_odd_things( int num_atoms,
              ( 0 == at[i1].radical || RADICAL_SINGLET == at[i1].radical ) &&
              !NUMH( at, i1 ) &&
              BOND_TYPE_SINGLE == at[i1].bond_type[0] &&
-             memchr( en + FIRST_NEIGHB2, at[i1].el_number, (long long)ne - FIRST_NEIGHB2 )) /* djb-rwth: cast operator added */
+             ion_el_group( at[i1].el_number ) == EL_NUMBER_O)
         {
             int charge, i;
-            /* found a candidate for X */
-            c = (int) at[i1].neighbor[0]; /* candidate for Y */
-            if (( ( charge = 2 ) == at[c].charge && memchr( en + FIRST_CENTER2, at[c].el_number, (long long)ne - FIRST_CENTER2 ) /* djb-rwth: cast operator added */
+            /* found a candidate for X, X=O,S,Se,Te */
+            c = (int) at[i1].neighbor[0]; /* candidate for Y, Y=S,Se,Te */
+            if (( ( charge = 2 ) == at[c].charge && 
+                  at[i1].el_number != EL_NUMBER_O && 
+                  ion_el_group( at[i1].el_number ) == EL_NUMBER_O
 
 #ifndef FIX_P_IV_Plus_O_Minus
                   || ( charge = 1 ) == at[c].charge && EL_NUMBER_P == at[c].el_number
@@ -832,7 +815,8 @@ int fix_odd_things( int num_atoms,
                 }
                 if (1 == at[i2].valence &&
                      -1 == at[i2].charge  &&
-                     memchr( en + FIRST_NEIGHB2, at[i2].el_number, (long long)ne - FIRST_NEIGHB2 ) && /* djb-rwth: cast operator added */
+                     at[i2].el_number != EL_NUMBER_O && 
+                     ion_el_group( at[i2].el_number ) == EL_NUMBER_O &&
                      /*at[i2].el_number == at[i1].el_number &&*/ /* exact match */
                      ( 0 == at[i2].radical || RADICAL_SINGLET == at[i2].radical ) &&
                      !NUMH( at, i2 ) &&
