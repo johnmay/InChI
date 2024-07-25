@@ -105,8 +105,6 @@ int move_explicit_Hcation( inp_ATOM *at,
 int DisconnectOneLigand( inp_ATOM *at,
                          AT_NUMB *nOldCompNumber,
                          S_CHAR *bMetal,
-                         char *elnumber_Heteroat,
-                         int num_halogens,
                          int num_atoms,
                          int iMetal,
                          int jLigand,
@@ -2881,6 +2879,31 @@ int bHasMetalAtom( ORIG_ATOM_DATA *orig_inp_data )
 *****************************************************************************/
 
 
+/****************************************************************************/
+static int ElType( char el )
+{
+    switch ( el ) {
+        case EL_NUMBER_F: /* fallthrough */
+        case EL_NUMBER_CL:
+        case EL_NUMBER_BR:
+        case EL_NUMBER_I:
+        case EL_NUMBER_AT:
+            return 2;
+        case EL_NUMBER_N:
+        case EL_NUMBER_P:
+        case EL_NUMBER_AS:
+        /* case EL_NUMBER_SB: */ /* metal 10-28-2003 */
+        case EL_NUMBER_O:
+        case EL_NUMBER_S:
+        case EL_NUMBER_SE:
+        case EL_NUMBER_TE:
+        /* case EL_NUMBER_PO: */ /* metal 10-28-2003 */
+        case EL_NUMBER_B:
+            return 1;
+        default:
+            return 0;
+    }
+}
 
 /****************************************************************************/
 int DisconnectMetals( ORIG_ATOM_DATA *orig_inp_data,
@@ -2890,9 +2913,6 @@ int DisconnectMetals( ORIG_ATOM_DATA *orig_inp_data,
     int i, j, k, n, iO, num_changes, val, bRadOrMultBonds;
     int num_impl_H, num_at, err, num_disconnected;
     S_CHAR num_explicit_H[NUM_H_ISOTOPES + 1];
-    static char elnumber_Heteroat[16] = { '\0', };
-    static int  num_halogens = 0;
-    int num_halogens2;
 
     inp_ATOM  *at = NULL;
     S_CHAR    *bMetal = NULL;
@@ -2911,31 +2931,6 @@ int DisconnectMetals( ORIG_ATOM_DATA *orig_inp_data,
     {
         err = 1;
         goto exit_function;
-    }
-
-    if (!num_halogens) /* if (!elnumber_Heteroat[0] )  */
-    {
-        i = 0;
-        /* halogens */
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_F; /* 0 */
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_CL;
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_BR;
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_I;
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_AT; /* 4 */
-        num_halogens2 = i;
-        /* other non-metal */
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_N;
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_P;
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_AS;
-        /*elnumber_Heteroat[i++] = EL_NUMBER_SB;*/ /* metal 10-28-2003 */
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_O;
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_S;
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_SE;
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_TE;
-        /*elnumber_Heteroat[i++] = EL_NUMBER_PO;*/ /* metal 10-28-2003 */
-        elnumber_Heteroat[i++] = (char) EL_NUMBER_B;
-        elnumber_Heteroat[i++] = 0;
-        num_halogens = num_halogens2;
     }
 
     memcpy(at, atom, num_atoms * sizeof(at[0]));
@@ -2995,7 +2990,7 @@ int DisconnectMetals( ORIG_ATOM_DATA *orig_inp_data,
                     goto exit_function;
                 }
                 at[num_at].elname[0] = 'H';
-                at[num_at].el_number = get_periodic_table_number( at[num_at].elname );
+                at[num_at].el_number = EL_NUMBER_H;
                 at[num_at].iso_atw_diff = k;
                 at[num_at].component = at[i].component;
                 move_explicit_Hcation( at, num_at + 1, i, num_at, 1 );
@@ -3064,8 +3059,6 @@ int DisconnectMetals( ORIG_ATOM_DATA *orig_inp_data,
                 num_disconnected += DisconnectOneLigand( at,
                                                          nOldCompNumber,
                                                          bMetal,
-                                                         elnumber_Heteroat,
-                                                         num_halogens,
                                                          num_atoms,
                                                          i,
                                                          j,
@@ -3090,8 +3083,6 @@ int DisconnectMetals( ORIG_ATOM_DATA *orig_inp_data,
                 num_disconnected += DisconnectOneLigand( at,
                                                          nOldCompNumber,
                                                          bMetal,
-                                                         elnumber_Heteroat,
-                                                         num_halogens,
                                                          num_atoms,
                                                          i,
                                                          j,
@@ -3133,8 +3124,6 @@ exit_function:
 int DisconnectOneLigand( inp_ATOM *at,
                          AT_NUMB *nOldCompNumber,
                          S_CHAR *bMetal,
-                         char *elnumber_Heteroat,
-                         int num_halogens,
                          int num_atoms,
                          int iMetal,
                          int jLigand,
@@ -3144,7 +3133,7 @@ int DisconnectOneLigand( inp_ATOM *at,
     int metal_neigh_ord[MAXVAL], num_neigh_arom_bonds[MAXVAL];
     int num_metal_neigh, num_disconnections;
     int num_del_arom_bonds, num_tot_arom_bonds, new_charge;
-    char *p;
+    int el_type; // 1: hetro, 2: halogen
 
     iLigand = at[iMetal].neighbor[jLigand];
     num_metal_neigh = 0;
@@ -3204,7 +3193,7 @@ int DisconnectOneLigand( inp_ATOM *at,
     i = num_tot_arom_bonds - num_del_arom_bonds;
     if ((i && i != 2 && i != 3) ||
          (at[iLigand].radical && at[iLigand].radical != RADICAL_SINGLET) ||
-         !( p = strchr( elnumber_Heteroat, at[iLigand].el_number ) )) /* djb-rwth: addressing LLVM warnings */
+         !(el_type = ElType( at[iLigand].el_number ))) /* djb-rwth: addressing LLVM warnings */
     {
         goto exit_function;  /* non-standard atom */
     }
@@ -3214,7 +3203,7 @@ int DisconnectOneLigand( inp_ATOM *at,
 
     if (!val)
     {
-        if (p - elnumber_Heteroat < num_halogens)
+        if (el_type == 2) // el_type == 2 => IS_HALOGEN
         {
             new_charge = -1;
         }
